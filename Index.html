@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Mini-mail</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    h1 { margin-bottom: 10px; }
+    input, textarea, button {
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 8px;
+      font-size: 14px;
+    }
+    .mail {
+      background: white;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 6px;
+    }
+    .subject {
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<h1>📧 Mini-mail</h1>
+
+<h2>✉ 新しいメール</h2>
+<input id="from" placeholder="From">
+<input id="to" placeholder="To">
+<input id="subject" placeholder="Subject">
+<textarea id="body" placeholder="Message"></textarea>
+<button onclick="sendMail()">送信</button>
+
+<hr>
+
+<h2>📬 受信トレイ</h2>
+<div id="mailList"></div>
+
+<script>
+  // 🔑 Supabase設定
+  const SUPABASE_URL = "https://YOUR_PROJECT_ID.supabase.co";
+  const SUPABASE_ANON_KEY = "YOUR_ANON_KEY";
+
+  const supabase = supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+  );
+
+  // 📤 メール送信
+  async function sendMail() {
+    const from = document.getElementById("from").value;
+    const to = document.getElementById("to").value;
+    const subject = document.getElementById("subject").value;
+    const body = document.getElementById("body").value;
+
+    await supabase.from("mails").insert({
+      from_address: from,
+      to_address: to,
+      subject: subject,
+      body: body
+    });
+
+    loadMails();
+  }
+
+  // 📥 メール取得
+  async function loadMails() {
+    const { data } = await supabase
+      .from("mails")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    const list = document.getElementById("mailList");
+    list.innerHTML = "";
+
+    data.forEach(mail => {
+      const div = document.createElement("div");
+      div.className = "mail";
+      div.innerHTML = `
+        <div class="subject">${mail.subject}</div>
+        <div>From: ${mail.from_address}</div>
+        <div>${mail.body}</div>
+      `;
+      list.appendChild(div);
+    });
+  }
+
+  // 🔄 リアルタイム同期
+  supabase
+    .channel("mail-sync")
+    .on(
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "mails" },
+      payload => {
+        loadMails();
+      }
+    )
+    .subscribe();
+
+  loadMails();
+</script>
+
+</body>
+</html>
