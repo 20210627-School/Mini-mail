@@ -1,27 +1,36 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Mini-mail</title>
+
+  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <style>
     body {
       font-family: sans-serif;
-      background: #f5f5f5;
-      padding: 20px;
+      background: #f4f4f4;
+      padding: 16px;
     }
-    h1 { margin-bottom: 10px; }
+    h1 { margin-bottom: 8px; }
     input, textarea, button {
       width: 100%;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       padding: 8px;
       font-size: 14px;
     }
+    button {
+      background: #4f46e5;
+      color: white;
+      border: none;
+      border-radius: 6px;
+    }
     .mail {
       background: white;
+      border-radius: 8px;
       padding: 10px;
-      margin-bottom: 10px;
-      border-radius: 6px;
+      margin-bottom: 8px;
     }
     .subject {
       font-weight: bold;
@@ -32,11 +41,11 @@
 
 <h1>📧 Mini-mail</h1>
 
-<h2>✉ 新しいメール</h2>
-<input id="from" placeholder="From">
-<input id="to" placeholder="To">
-<input id="subject" placeholder="Subject">
-<textarea id="body" placeholder="Message"></textarea>
+<h2>✉ 送信</h2>
+<input id="from" placeholder="from" />
+<input id="to" placeholder="to" />
+<input id="subject" placeholder="subject" />
+<textarea id="body" placeholder="message"></textarea>
 <button onclick="sendMail()">送信</button>
 
 <hr>
@@ -45,8 +54,8 @@
 <div id="mailList"></div>
 
 <script>
-  // 🔑 Supabase設定
-  const SUPABASE_URL = "https://YOUR_PROJECT_ID.supabase.co";
+  // 🔑 Supabase設定（ここを書き換える）
+  const SUPABASE_URL = "https://YOUR_PROJECT_URL.supabase.co";
   const SUPABASE_ANON_KEY = "YOUR_ANON_KEY";
 
   const supabase = supabase.createClient(
@@ -56,19 +65,12 @@
 
   // 📤 メール送信
   async function sendMail() {
-    const from = document.getElementById("from").value;
-    const to = document.getElementById("to").value;
-    const subject = document.getElementById("subject").value;
-    const body = document.getElementById("body").value;
-
     await supabase.from("mails").insert({
-      from_address: from,
-      to_address: to,
-      subject: subject,
-      body: body
+      from_address: from.value,
+      to_address: to.value,
+      subject: subject.value,
+      body: body.value
     });
-
-    loadMails();
   }
 
   // 📥 メール取得
@@ -78,22 +80,19 @@
       .select("*")
       .order("created_at", { ascending: false });
 
-    const list = document.getElementById("mailList");
-    list.innerHTML = "";
-
-    data.forEach(mail => {
-      const div = document.createElement("div");
-      div.className = "mail";
-      div.innerHTML = `
-        <div class="subject">${mail.subject}</div>
-        <div>From: ${mail.from_address}</div>
-        <div>${mail.body}</div>
+    mailList.innerHTML = "";
+    data.forEach(m => {
+      mailList.innerHTML += `
+        <div class="mail">
+          <div class="subject">${m.subject}</div>
+          <div>From: ${m.from_address}</div>
+          <div>${m.body}</div>
+        </div>
       `;
-      list.appendChild(div);
     });
   }
 
-  // 🔄 リアルタイム同期
+  // 🔄 リアルタイム同期（ここが肝）
   supabase
     .channel("mail-sync")
     .on(
